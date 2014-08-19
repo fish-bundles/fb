@@ -142,5 +142,6 @@ class Install(Lister):
     def ensure_user_token(self):
         token_path = environ.get('__fish_bundles_token_path', expanduser('~/.fbrc'))
         if not exists(token_path):
+            # https://help.github.com/articles/creating-an-access-token-for-command-line-use
             self.show_warning("We still can't find your authentication tokens for github. Your connectivity may be limited.", extra_line=False)
             self.app.stdout.write("==> Please verify the docs on how to configure it at http://github.com/whateverurl.\n\n")
