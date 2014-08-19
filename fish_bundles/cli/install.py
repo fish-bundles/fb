@@ -23,6 +23,9 @@ class Install(Lister):
         super(Install, self).__init__(*args, **kw)
         self.term = Terminal()
 
+    def get_dim(self, msg):
+        return self.term.dim_yellow(msg)
+
     def get_error_message(self, message, details):
         return self.term.bold_red('\nError: %s\n\n%s%sError details: %s\n' % (
             message, self.term.normal, self.term.dim_white, details
@@ -51,7 +54,11 @@ class Install(Lister):
         installed = self.install(info, bundle_path)
 
         self.app.stdout.write(self.term.bold_green(
-            '\nSuccessfully installed %d bundle(s)!\n\nUpdated Bundle Versions:\n' % len(installed)
+            '\nSuccessfully installed %d bundle(s)!\n\n%s%sUpdated Bundle Versions:\n' % (
+                len(installed),
+                self.term.normal,
+                self.term.bold_blue
+            )
         ))
 
         result = []
@@ -67,10 +74,10 @@ class Install(Lister):
         installed_bundles = []
 
         for bundle in info:
-            logging.info('Installing %s...' % bundle['repo'])
+            logging.info(self.get_dim('>>> Installing %s...' % bundle['repo']))
             self.unzip(bundle['zip'], to=tmp_dir)
             author, repo = bundle['repo'].split('/')
-            logging.info('%s installed successfully.' % bundle['repo'])
+            logging.info(self.get_dim('>>> %s installed successfully.' % bundle['repo']))
             installed_bundles.append((author, repo, bundle['version']))
 
         shutil.rmtree(bundle_path)

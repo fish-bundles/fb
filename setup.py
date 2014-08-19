@@ -51,7 +51,6 @@ fb is the command line tool for fish-bundles.
     include_package_data=True,
     install_requires=[
         'cliff',
-        'semantic_version',
         'blessings',
     ],
     extras_require={
