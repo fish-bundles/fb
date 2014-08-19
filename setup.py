@@ -29,7 +29,7 @@ setup(
     version=__version__,
     description='fb is the command line tool for fish-bundles',
     long_description='''
-fb is the command line tool for fish-bundles
+fb is the command line tool for fish-bundles.
 ''',
     keywords='fish fish-bundles cli shell',
     author='Bernardo Heynemann',
@@ -50,8 +50,9 @@ fb is the command line tool for fish-bundles
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        # add your dependencies here
-        # remember to use 'package-name>=x.y.z,<x.y+1.0' notation (this way you get bugfixes)
+        'cliff',
+        'semantic_version',
+        'blessings',
     ],
     extras_require={
         'tests': tests_require,
@@ -59,7 +60,10 @@ fb is the command line tool for fish-bundles
     entry_points={
         'console_scripts': [
             # add cli scripts here in this form:
-            # 'fish-bundles=fish_bundles.cli:main',
+            'fb=fish_bundles.cli:main',
+        ],
+        'fb': [
+            'install = fish_bundles.cli.install:Install',
         ],
     },
 )
