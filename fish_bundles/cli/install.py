@@ -7,9 +7,11 @@ from os.path import join, dirname, exists, expanduser
 import tempfile
 from zipfile import ZipFile
 from cStringIO import StringIO
+import getpass
 
 from cliff.lister import Lister
 import requests
+from requests.auth import HTTPBasicAuth
 from requests.exceptions import ConnectionError
 from blessings import Terminal
 
@@ -31,11 +33,13 @@ class Install(Lister):
             message, self.term.normal, self.term.dim_white, details
         ))
 
-    def show_warning(self, msg):
+    def show_warning(self, msg, extra_line=True):
         separator = "%s\n" % ('-' * len(msg))
         self.app.stdout.write(separator)
-        self.app.stdout.write(self.term.bold_white_on_yellow(msg))
-        self.app.stdout.write(separator + '\n')
+        self.app.stdout.write(self.term.bold_white_on_yellow(msg) + '\n')
+        self.app.stdout.write(separator)
+        if extra_line:
+            self.app.stdout.write('\n')
 
     def take_action(self, parsed_args):
         if '__fish_bundles_list' not in environ:
@@ -43,6 +47,8 @@ class Install(Lister):
                 'Warning: Could not find the "__fish_bundles_list" environment variable. '
                 'Have you added any \'fish_bundle "bundle-name"\' entries in your config.fish file?\n'
             )
+
+        self.ensure_user_token()
 
         bundles = environ.get('__fish_bundles_list', '')
         bundles = list(set(bundles.split(':')))
@@ -132,3 +138,9 @@ class Install(Lister):
             ))
 
         return data['bundles']
+
+    def ensure_user_token(self):
+        token_path = environ.get('__fish_bundles_token_path', expanduser('~/.fbrc'))
+        if not exists(token_path):
+            self.show_warning("We still can't find your authentication tokens for github. Your connectivity may be limited.", extra_line=False)
+            self.app.stdout.write("==> Please verify the docs on how to configure it at http://github.com/whateverurl.\n\n")
