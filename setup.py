@@ -52,6 +52,7 @@ fb is the command line tool for fish-bundles.
     install_requires=[
         'cliff',
         'blessings',
+        'semantic_version',
     ],
     extras_require={
         'tests': tests_require,
@@ -63,6 +64,8 @@ fb is the command line tool for fish-bundles.
         ],
         'fb': [
             'install = fish_bundles.cli.install:Install',
+            'init = fish_bundles.cli.init:Init',
+            'list = fish_bundles.cli.list:List',
         ],
     },
 )

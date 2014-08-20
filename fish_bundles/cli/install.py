@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import logging
 from json import dumps
 import sys
@@ -7,13 +10,13 @@ from os.path import join, dirname, exists, expanduser
 import tempfile
 from zipfile import ZipFile
 from cStringIO import StringIO
-import getpass
 
 from cliff.lister import Lister
 import requests
-from requests.auth import HTTPBasicAuth
-from requests.exceptions import ConnectionError
 from blessings import Terminal
+from requests.exceptions import ConnectionError
+
+from fish_bundles.cli.lock import Lock
 
 
 class Install(Lister):
@@ -24,6 +27,11 @@ class Install(Lister):
     def __init__(self, *args, **kw):
         super(Install, self).__init__(*args, **kw)
         self.term = Terminal()
+
+    def get_parser(self, prog_name):
+        parser = super(Install, self).get_parser(prog_name)
+        parser.add_argument('--force', action='store_true',  default=False)
+        return parser
 
     def get_dim(self, msg):
         return self.term.dim_yellow(msg)
@@ -57,54 +65,74 @@ class Install(Lister):
         bundle_path = environ.get('__fish_bundles_root', expanduser('~/.config/fish/bundles'))
 
         info = self.get_bundle_info(server, bundles)
-        installed = self.install(info, bundle_path)
+        installed, lock = self.install(info, bundle_path, parsed_args.force)
 
-        self.app.stdout.write(self.term.bold_green(
-            '\nSuccessfully installed %d bundle(s)!\n\n%s%sUpdated Bundle Versions:\n' % (
-                len(installed),
-                self.term.normal,
-                self.term.bold_blue
+        if not installed:
+            self.app.stdout.write(self.term.bold_green(
+                u'\n☺ YAY! All bundles are up-to-date. No new bundles were installed. ☺ \n'
+            ))
+        else:
+            installed_bundles = ", ".join(
+                [bundle[1] for bundle in installed]
             )
-        ))
+            self.app.stdout.write(self.term.bold_green(
+                '\nSuccessfully installed %d bundles (%s)!\n\n%s%sUpdated Bundle Versions:\n' % (
+                    len(installed),
+                    installed_bundles,
+                    self.term.normal,
+                    self.term.bold_blue
+                )
+            ))
 
         result = []
 
-        for bundle in installed:
-            author, repo, version = bundle
+        self.app.stdout.write(self.term.bold_blue(u'\nInstalled Bundles:\n'))
+        for bundle in lock.bundles:
+            author, repo = bundle['repo'].split('/')
+            version = bundle['version']
             result.append((repo, version, author))
 
         return tuple((('bundle', 'version', 'author'),) + (result, ))
 
-    def install(self, info, bundle_path):
+    def install(self, info, bundle_path, force):
         tmp_dir = tempfile.mkdtemp()
         installed_bundles = []
+        lock = Lock.load()
 
         for bundle in info:
+            if not force and lock.is_up_to_date(bundle):
+                continue
+
             logging.info(self.get_dim('>>> Installing %s...' % bundle['repo']))
-            self.unzip(bundle['zip'], to=tmp_dir)
+            self.unzip(bundle, to=tmp_dir)
             author, repo = bundle['repo'].split('/')
             logging.info(self.get_dim('>>> %s installed successfully.' % bundle['repo']))
             installed_bundles.append((author, repo, bundle['version']))
+            lock.update_bundle(bundle)
 
         shutil.rmtree(bundle_path)
         shutil.copytree(tmp_dir, bundle_path)
+        lock.save()
+        lock.write_imports()
 
-        return installed_bundles
+        return installed_bundles, lock
 
-    def unzip(self, url, to):
-        data = requests.get(url)
+    def unzip(self, bundle, to):
+        data = requests.get(bundle['zip'])
         z = ZipFile(StringIO(data.content))
 
         files = z.filelist
 
         root = files[0].filename
 
+        root_path = join(to, bundle['repo'])
+
         for zip_file in files[1:]:
             path = zip_file.filename.replace(root, '').lstrip('/')
             if 'functions/' not in path or not path.endswith('.fish'):
                 continue
 
-            file_path = join(to.rstrip('/'), path)
+            file_path = join(root_path.rstrip('/'), path)
             file_dir = dirname(file_path)
             if not exists(file_dir):
                 makedirs(file_dir)
