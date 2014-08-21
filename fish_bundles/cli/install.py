@@ -60,7 +60,7 @@ class Install(Lister):
 
         bundles = environ.get('__fish_bundles_list', '')
         bundles = list(set(bundles.split(':')))
-        bundles = ['fish-bundles/root-bundle-fish-bundle'] + bundles
+        bundles = ['fish-bundles/root-bundle-fish-bundle'] + [bundle for bundle in bundles if bundle]
         server = environ.get('__fish_bundles_host', 'http://bundles.fish/')
         bundle_path = environ.get('__fish_bundles_root', expanduser('~/.config/fish/bundles'))
 
@@ -101,6 +101,7 @@ class Install(Lister):
 
         for bundle in info:
             if not force and lock.is_up_to_date(bundle):
+                self.copy_bundle(bundle, to=tmp_dir)
                 continue
 
             logging.info(self.get_dim('>>> Installing %s...' % bundle['repo']))
@@ -112,10 +113,16 @@ class Install(Lister):
 
         shutil.rmtree(bundle_path)
         shutil.copytree(tmp_dir, bundle_path)
+        lock.reload()
         lock.save()
-        lock.write_imports()
 
         return installed_bundles, lock
+
+    def copy_bundle(self, bundle, to):
+        bundle_path = environ.get('__fish_bundles_root', expanduser('~/.config/fish/bundles'))
+        bundle_dir = join(bundle_path.rstrip('/'), bundle['repo'].lstrip('/'))
+        to_dir = join(to.rstrip('/'), bundle['repo'].lstrip('/'))
+        shutil.copytree(bundle_dir, to_dir)
 
     def unzip(self, bundle, to):
         data = requests.get(bundle['zip'])
@@ -125,7 +132,7 @@ class Install(Lister):
 
         root = files[0].filename
 
-        root_path = join(to, bundle['repo'])
+        root_path = join(to.rstrip('/'), bundle['repo'].lstrip('/'))
 
         for zip_file in files[1:]:
             path = zip_file.filename.replace(root, '').lstrip('/')
