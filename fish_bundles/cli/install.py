@@ -17,6 +17,7 @@ from blessings import Terminal
 from requests.exceptions import ConnectionError
 
 from fish_bundles.cli.lock import Lock
+from fish_bundles.cli.init import update_init_file
 
 
 class Install(Lister):
@@ -84,6 +85,8 @@ class Install(Lister):
                 )
             ))
 
+            update_init_file()
+
         result = []
 
         self.app.stdout.write(self.term.bold_blue(u'\nInstalled Bundles:\n'))
@@ -124,6 +127,9 @@ class Install(Lister):
         to_dir = join(to.rstrip('/'), bundle['repo'].lstrip('/'))
         shutil.copytree(bundle_dir, to_dir)
 
+    def is_allowed_path(self, path):
+        return path.endswith('.fish')
+
     def unzip(self, bundle, to):
         data = requests.get(bundle['zip'])
         z = ZipFile(StringIO(data.content))
@@ -136,7 +142,7 @@ class Install(Lister):
 
         for zip_file in files[1:]:
             path = zip_file.filename.replace(root, '').lstrip('/')
-            if 'functions/' not in path or not path.endswith('.fish'):
+            if not self.is_allowed_path(path):
                 continue
 
             file_path = join(root_path.rstrip('/'), path)
@@ -178,5 +184,8 @@ class Install(Lister):
         token_path = environ.get('__fish_bundles_token_path', expanduser('~/.fbrc'))
         if not exists(token_path):
             # https://help.github.com/articles/creating-an-access-token-for-command-line-use
-            self.show_warning("We still can't find your authentication tokens for github. Your connectivity may be limited.", extra_line=False)
+            self.show_warning(
+                "We still can't find your authentication tokens for github. Your connectivity may be limited.",
+                extra_line=False
+            )
             self.app.stdout.write("==> Please verify the docs on how to configure it at http://github.com/whateverurl.\n\n")

@@ -24,6 +24,22 @@ class Lock(object):
     def bundles_path(self):
         return environ.get('__fish_bundles_root', expanduser('~/.config/fish/bundles'))
 
+    def get_bundle_path(self, bundle):
+        return join(self.bundles_path, bundle['repo'])
+
+    def get_bundle_functions_path(self, bundle):
+        return join(self.get_bundle_path(bundle), 'functions')
+
+    def get_bundle_config_path(self, bundle):
+        return join(self.get_bundle_path(bundle), 'config.fish')
+
+    def get_config_path(self, bundle):
+        config_path = self.get_bundle_config_path(bundle)
+        if not exists(config_path):
+            return None
+
+        return config_path
+
     @classmethod
     def load(self, path=None):
         if path is None:
@@ -53,8 +69,8 @@ class Lock(object):
     def update_function_paths(self):
         paths = []
         for bundle in self.bundles:
-            bundle_path = join(self.bundles_path, bundle['repo'], 'functions/')
-            paths.append("set -gx fish_function_path $fish_function_path %s\n" % bundle_path)
+            functions_path = self.get_bundle_functions_path(bundle)
+            paths.append("set -gx fish_function_path $fish_function_path %s\n" % functions_path)
 
         path = Lock.get_functions_path_file()
         with open(path, 'w') as import_file:
@@ -71,7 +87,7 @@ class Lock(object):
     def reload(self):
         new_bundles = []
         for bundle in self.bundles:
-            bundle_path = join(self.bundles_path, bundle['repo'])
+            bundle_path = self.get_bundle_path(bundle)
             if exists(bundle_path):
                 new_bundles.append(bundle)
         self.bundles = new_bundles
