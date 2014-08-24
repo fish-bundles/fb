@@ -50,9 +50,9 @@ fb is the command line tool for fish-bundles.
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'cliff',
-        'blessings',
-        'semantic_version',
+        'cliff==1.6.1',
+        'blessings==1.5.1',
+        'semantic_version==2.3.0',
     ],
     extras_require={
         'tests': tests_require,
