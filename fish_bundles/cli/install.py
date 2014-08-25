@@ -27,11 +27,22 @@ class Install(Lister):
 
     def __init__(self, *args, **kw):
         super(Install, self).__init__(*args, **kw)
-        self.term = Terminal()
+        self._term = None
+
+    @property
+    def term(self):
+        if self._term is None:
+            if self.options.boring:
+                self._term = Terminal(force_styling=None)
+            else:
+                self._term = Terminal()
+
+        return self._term
 
     def get_parser(self, prog_name):
         parser = super(Install, self).get_parser(prog_name)
         parser.add_argument('--force', action='store_true',  default=False)
+        parser.add_argument('--boring', action='store_true',  default=False)
         return parser
 
     def get_dim(self, msg):
@@ -51,6 +62,8 @@ class Install(Lister):
             self.app.stdout.write('\n')
 
     def take_action(self, parsed_args):
+        self.options = parsed_args
+
         if '__fish_bundles_list' not in environ:
             self.show_warning(
                 'Warning: Could not find the "__fish_bundles_list" environment variable. '

@@ -9,8 +9,24 @@
 # Copyright (c) 2014 Bernardo Heynemann heynemann@gmail.com
 
 
+import os
 from setuptools import setup, find_packages
+from setuptools.command.install import install as _install
 from fish_bundles import __version__
+
+
+class install(_install):
+    def run(self):
+        _install.run(self)
+        os.system('fb init')
+        try:
+            os.system('fb install --boring')
+        except Exception:
+            print "-------------------------------------------------------------"
+            print "An error happened while trying to install the latest bundles."
+            print "You **MUST** run 'fb install' after this finishes."
+            print "-------------------------------------------------------------"
+
 
 tests_require = [
     'mock',
@@ -25,6 +41,7 @@ tests_require = [
 ]
 
 setup(
+    cmdclass={'install': install},
     name='fish-bundles',
     version=__version__,
     description='fb is the command line tool for fish-bundles',

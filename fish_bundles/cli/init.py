@@ -38,4 +38,6 @@ class Init(Command):
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):
+        print "Verifying fish configuration..."
         update_init_file()
+        print "Fish configuration updated."
