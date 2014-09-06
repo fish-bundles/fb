@@ -115,6 +115,7 @@ class Install(Lister):
         installed_bundles = []
         lock = Lock.load()
 
+
         for bundle in info:
             if not force and lock.is_up_to_date(bundle):
                 self.copy_bundle(bundle, to=tmp_dir)
@@ -138,6 +139,8 @@ class Install(Lister):
         bundle_path = environ.get('__fish_bundles_root', expanduser('~/.config/fish/bundles'))
         bundle_dir = join(bundle_path.rstrip('/'), bundle['repo'].lstrip('/'))
         to_dir = join(to.rstrip('/'), bundle['repo'].lstrip('/'))
+        if not exists(bundle_dir):
+            return
         shutil.copytree(bundle_dir, to_dir)
 
     def is_allowed_path(self, path):
